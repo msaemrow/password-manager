@@ -23,7 +23,20 @@ A command-line password manager that stores and retrieves passwords. App utilize
    git clone https://github.com/yourusername/password-manager.git
    ```
 2. Navigate into the directory
-3. Create a virtual environment
+   ```sh
+   cd password-manager
+   ```
+3. Create a virtual environment and start virtual environment
+   ```sh
+   python -m venv venv
+   source venv/bin/activate
+   ```
 4. Install requirements
+   ```sh
+   python install -r requirements.txt
+   ```
 5. Run application
+   ```sh
+   textual run password_manager.py
+   ```
 6. Follow on screen prompts

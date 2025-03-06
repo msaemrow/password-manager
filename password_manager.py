@@ -1,249 +1,246 @@
-from cryptography.fernet import Fernet
-import os
-import json
-from colorama import Fore, Style, Back
 from textual.app import App, ComposeResult
-from textual.binding import Binding
-from textual.containers import Vertical, Horizontal, VerticalScroll
-from textual.widgets import Header, Footer, Button, Input, Static
+from textual.containers import Container,Horizontal, Vertical, Center
+from textual.widgets import Footer, Button, Input, Static, Label
+from textual import on
 from textual.screen import Screen
+from storage import add_password, get_password, get_account_list, add_login_pw, get_login_pw, load_passwords
+from encryption import load_key
 
-def generate_key():
-    """
-    Generate a key for encryption and save it to a file.
-    """
-    key=Fernet.generate_key()
-    with open("secret.key", "wb") as key_file:
-        key_file.write(key)
-    print(Fore.GREEN + "Key generated and saved." + Style.RESET_ALL)
-
-def load_key():
-    """
-    Loads key from secret.key file
-    """
-
-    return open("secret.key", "rb").read()
-
-def encrypt_password(password, key):
-    """
-    Encrypts password using key
-    """
-    fernet = Fernet(key)
-    encrypted_password = fernet.encrypt(password.encode())
-    return encrypted_password
-
-def decrypt_password(encrypted_password, key):
-    """
-    Decrypts the encrypted password using key
-    """
-    fernet = Fernet(key)
-    decrypted_password = fernet.decrypt(encrypted_password).decode()
-    return decrypted_password
-
-def add_password(key, service, username, password):
-    """
-    Prompt user for a service, username and password
-    Encrypt and add new password entry to the passwords.json file.
-    """
-    encrypted_password = encrypt_password(password, key)
-
-    if os.path.exists("passwords.json"):
-        with open("passwords.json", "r") as file:
-            try:
-                passwords = json.load(file)
-            except json.JSONDecodeError:
-                passwords = {}
-    else:
-        passwords = {}
+class PasswordPrompt(App):
+    """Prompt for password before accessing the main app."""
     
-    passwords[service] = {
-        "username": username,
-        "password": encrypted_password.decode()
-    }
+    CSS_PATH = "textual.tcss"  
 
-    with open("passwords.json", "w") as file:
-        json.dump(passwords, file, indent=4)
+    def compose(self) -> ComposeResult:
+        with Container(id="password_prompt_container"):
+            yield Label("Enter Password", id="password_prompt_label")
+            yield Input(placeholder="Enter your password", id="password_input", classes="password_prompt_input")
+            yield Horizontal(
+                Button("Submit", id="submit_password", classes="password_prompt_buttons"),
+            )
     
-    print(Fore.GREEN + f"Successfully added username and password for {service}" + Style.RESET_ALL)
+    @on(Button.Pressed, "#submit_password")
+    def verify_password(self):
+        key = load_key()
+        input_password = self.query_one("#password_input", Input).value.strip()
+        password = get_login_pw(key)
+        print(f"Password {password}")
+        dummy_pw = "password"
 
-def get_password(key):
-    """
-    Retrieves username and password from file for a given service and decodes to user
-    """
-    service = input(Fore.WHITE + "Enter service name: " + Style.RESET_ALL).strip()
-
-    if os.path.exists("passwords.json"):
-        with open("passwords.json", "r") as file:
-            try: 
-                passwords = json.load(file)
-            except json.JSONDecodeError:
-                print(Fore.RED + "Error: Password file is corrupt." + Style.RESET_ALL)
-                return
-            
-        if service in passwords:
-            username= passwords[service]["username"]
-            encrypted_password=  passwords[service]["password"].encode()
-            password=decrypt_password(encrypted_password, key)
-            print(Fore.CYAN + f"Service: {service}\nUsername: {username}\nPassword: {password}" + Style.RESET_ALL)
+        if input_password == password:
+            self.push_screen(PasswordManagerHome())
         else:
-            print(Fore.YELLOW + f"No username/password found for {service}" + Style.RESET_ALL)
-    else:
-        print(Fore.YELLOW + "No passwords found in file" + Style.RESET_ALL)
-
-def main():
-    """
-    Main function to run the password manager CLI
-    """
-    if not os.path.exists("secret.key"):
-        print(Fore.YELLOW + "Key not found, generating a new key..." + Style.RESET_ALL)
-        generate_key() 
+            self.query_one("#password_prompt_label", Label).update("Incorrect password, try again.")
 
 
-    key = load_key()
+class AddPassword(Screen):
+    CSS_PATH = "textual.tcss"    
+    
 
-    while True:
-        print(Style.BRIGHT + Fore.CYAN + "\n Password Manager Menu" + Style.RESET_ALL )
-        print(Fore.WHITE + "1. Add a new password" + Style.RESET_ALL)
-        print(Fore.WHITE + "2. Look up stored password" + Style.RESET_ALL)
-        print(Fore.WHITE + "3. Exit" + Style.RESET_ALL)
+    BINDINGS = [("esc", "pop_screen", "Close")]
+    def compose(self) -> ComposeResult:
+        with Container(id="add_password_container"):
 
-        choice = input(Style.BRIGHT + Fore.GREEN + "Choose an option (1, 2, or 3)\n" + Style.RESET_ALL).strip()
-
-        if choice == "1":
-            add_password(key)
-        elif choice == "2":
-            get_password(key)
-        elif choice == "3":
-            print("Exiting Password Manager")
-            break
-        else:
-            print("Invalid option. Enter 1, 2, or 3 to choose an option.")
-
-class PasswordManagerApp(App):
-    CSS_PATH = "password.tcss"
-    BINDINGS = [
-        Binding(key="q", action="quit", description="Quit the app"),
-        Binding(
-            key="plus_sign",
-            action="on_button_press",
-            description="Add Password",
-            key_display="+",
-        ),
-    ]
-
-    def compose(self):
-        yield Vertical(
-            Header("Password Manager", classes="header"),
-            Button("Add a Password", id="add_password", classes="button", variant="primary"),
-            Button("Get Password", id="get_password",classes="button", variant="primary"),
-            Button("Exit", id="exit", classes="button", variant="error"),
-        )
-        yield Footer()
-
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
-            """Handles button click events."""
-            key = load_key()
-
-            if event.button.id == "add_password":
-                await self.push_screen(AddPasswordScreen(key))
-                print("Add Password button clicked!")
-            elif event.button.id == "get_password":
-                print("Get Password button clicked!")
-            elif event.button.id == "exit":
-                print("Exiting...")
-                self.exit()
-
-    async def action_on_button_press(self, message):
-        """Handles button presses"""
-        if message.button.id == "add_password":
-            await self.push_screen(AddPasswordScreen(self.key))
-        elif message.button.id == "get_password":
-            await self.push_screen(GetPasswordScreen(self.key))
-
-        elif message.button.id == "exit":
-            await self._shutdown()
-
-class AddPasswordScreen(Screen):
-    def __init__(self, key):
-        super().__init__()
-        self.key = key
-
-    def compose(self):
-        yield Horizontal(
-            VerticalScroll(
-                Header("Add new password", classes="header"),
-                Input(placeholder="Service", id="add_service", classes="pw_input"),
-                Input(placeholder="Username", id="add_username",classes="pw_input"),
-                Input(placeholder="Password", id="add_password", classes="pw_input"),
-                Input(placeholder="Confirm Password", id="confirm_password", classes="pw_input"),
-            ),
-            Vertical(
-                Button("Add Combination", id="submit", variant="success", classes="button" ),
-                Button("Main Menu", id="exit", variant="success", classes="button" )
+            with Vertical(id="input_button_container"):
+                self.success_message_container = Label("", id="success_message")
+                yield self.success_message_container
+                yield Label("Enter Account Name", classes="add_password_label")
+                yield Input(placeholder="Add Account Name...", id="account_input", classes="add_password_inputs")
+                yield Label("Enter Username", classes="add_password_label")
+                yield Input(placeholder="Add Username...", id="username_input", classes="add_password_inputs")
+                yield Label("Enter Password", classes="add_password_label")
+                yield Input(placeholder="Add Password...", id="password_input", classes="add_password_inputs")
+            yield Horizontal(
+                Button("Add Password", classes="add_password_buttons", id="add_password_button"),
+                Button("Main Menu", classes="add_password_buttons", id="return")
             )
 
-        )
+
+    @on(Button.Pressed, "#add_password_button")
+    def add_password(self):
+        account_input = self.query_one("#account_input", Input)
+        account = account_input.value.strip().lower()
+        username_input = self.query_one("#username_input", Input)
+        username = username_input.value.strip()
+        password_input = self.query_one("#password_input", Input)
+        password = password_input.value.strip()
+
+        if not account or not username or not password:
+            print(f"Account: '{account}' Username: '{username}' Password: '{password}'")
+            self.success_message_container.update(f"All fields are required.")
+            return
+        
+        try:
+            key = load_key()
+            print(f"Key: {key}")
+            add_password(key, account, username, password)
+            self.success_message_container.update(f"Successfully added password for {account}.")
+            
+            account_input.clear()
+            username_input.clear()
+            password_input.clear()
+        except Exception as e:
+            print(f"Error: {e}")
+            self.success_message_container.update(f"Error adding password for {account}: {e}.")
+
+
+    @on(Button.Pressed, "#return")
+    def exit_app(self):
+        print("Exiting...")
+        self.app.pop_screen()
+
+class GetPassword(Screen):
+    CSS_PATH = "textual.tcss"    
+    def compose(self) -> ComposeResult:
+        with Container(id="get_container"):
+            with Center(id="get_pw_input_container"):
+                yield Label("Enter Account Name", id="get_password_label")
+                yield Input(placeholder="Enter account name here", id="account_name", classes="get_password_inputs")
+            with Vertical(id="account_information_container"):
+                self.account_name_label = Label("", id="account_name")
+                self.account_user_label = Label("", id="account_user")
+                self.account_pw_label = Label("", id="account_pw")
+                yield self.account_name_label
+                yield self.account_user_label
+                yield self.account_pw_label
+                
+           
+            with Horizontal(id="button_container"):
+                yield Button("Lookup", id="lookup_password", classes="get_password_buttons")
+                yield Button("Main Menu", id="return", classes="get_password_buttons")
+            
+    @on(Button.Pressed, "#lookup_password")
+    def lookup_password(self):
+        input = self.query_one("#account_name", Input)
+        account = input.value.strip().lower()
+        if account:
+            try:
+                key = load_key()
+                try:
+                    account_info = get_password(account, key)
+                    print(f"account info: {account_info}")
+                except Exception as e:
+                    self.account_name_label.update("Error fetching account info")
+                    print(f"Error fetching account info {e}")
+                    return
+                if account_info is None:
+                    self.account_name_label.update("No account info found")
+                    self.account_user_label.update("")
+                    self.account_pw_label.update("")
+                    print("No account info found")
+                    return
+                
+                try:
+                    self.account_name_label.update(f"Account Name: {account_info['account']}")
+                    self.account_user_label.update(f"Username: {account_info['username']}")
+                    self.account_pw_label.update(f"Password: {account_info['password']}")
+                except Exception as e:
+                    print(f"Error: {e}")
+                    self.account_name_label.update(f"Error updating labels {e}")
+            except Exception as e:
+                    print(f"Unknown Error: {e}")
+                    self.account_name_label.update(f"Unknown error{e}")
+        input.clear()
+
+    @on(Button.Pressed, "#return")
+    def exit_app(self):
+        print("Exiting...")
+        self.app.pop_screen()
+
+
+class ViewAccounts(Screen):
+    CSS_PATH = "textual.tcss"    
+    def compose(self) -> ComposeResult:
+        with Container(id="get_container"):
+            with Center(id="get_pw_input_container"):
+                yield Label("View All Accounts")
+            with Vertical(id="account_information_container"):
+                account_names = get_account_list()
+                self.account_labels = []
+                for account in account_names:
+                    safe_account_name = account.replace(" ","_")
+                    label = Label(account.title() , id=f"account_{safe_account_name}")    
+                    self.account_labels.append(label)  
+                    yield label         
+           
+            with Horizontal(id="button_container"):
+                yield Button("Main Menu", id="return", classes="get_password_buttons")
+
+
+    @on(Button.Pressed, "#return")
+    def exit_app(self):
+        print("Exiting...")
+        self.app.pop_screen()
+
+
+class PasswordManagerHome(Screen):
+    CSS_PATH = "textual.tcss"    
+
+    BINDINGS = [("a", "add_pw", "Add"), ("l", "lookup_pw", "Lookup")]
+    def compose(self) -> ComposeResult:
+        with Container(id="home_container"):
+            yield Label("Welcome to the Password Manager", id="home_title")
+        with Vertical(id="button_container"):  
+                yield Label("Select an option", id="home_label")
+                with Center():
+                    yield Button("Add Password", id="add_password", classes="home_buttons")
+                    yield Button("Lookup Password", id="get_password", classes="home_buttons")
+                    yield Button("View Accounts", id="view_accounts", classes="home_buttons")
+                    yield Button("Exit App", id="exit", classes="home_buttons")
 
         yield Footer()
 
+    def action_add_pw(self) -> None:
+        self.app.push_screen(AddPassword())
+
+    def action_lookup_pw(self) -> None:
+        self.app.push_screen(GetPassword())
     
-    async def on_button_click(self, event: Button.Pressed) -> None:
-        """Handles submission button click"""
-        self.log(f"Button Pressed: {event.button.id}")
+    def action_view_accounts(self) -> None:
+        self.app.push_screen(ViewAccounts())
 
-        if event.button.id == "submit":
-            service = self.query_one("#add_service", Input).value.strip()
-            username = self.query_one("#add_username", Input).value.strip()
-            password = self.query_one("#add_password", Input).value.strip()
-            confirm_password = self.query_one("#confirmpassword", Input).value.strip()
+    def action_exit_app(self) -> None:
+        self.app.exit()
 
+    @on(Button.Pressed, "#add_password")
+    def add_pw(self) -> None:
+        self.app.push_screen(AddPassword())
 
-            if service and username and password and confirm_password:    
-                if password == confirm_password:
-                    await add_password(self.key, service, username, password)
-                    await self.app.pop_screen()
-                else:
-                    self.log("Passwords must match")
-            else:
-                self.log("All fields required")
-        elif event.button.id == "exit":
-                self.log("Returning to main menu...")
-                try:
-                    await self.app.pop_screen()
-                    self.log("Screen popped successfully!")
-                except Exception as e:
-                    self.log(f"Error popping screen: {e}")
+    @on(Button.Pressed, "#get_password")
+    def get_pw(self) -> None:
+        self.app.push_screen(GetPassword())
 
-class PasswordScreen(App):
-    def __init__(self, key):
-        super().__init__()
-        self.key = key
+    @on(Button.Pressed, "#view_accounts")
+    def list_accounts(self) -> None:
+        self.app.push_screen(ViewAccounts())
 
-    async def on_mount(self):
-        self.service_input = Input(placeholder="Enter Service Name", id="service_name")
-        self.submit_button = Button("Submit", id="submit")
+    @on(Button.Pressed, "#exit")
+    def exit_app(self):
+        print("Exiting...")
+        self.app.exit()
+    
+    @on(Button.Pressed, "#test1")
+    def display_text(self):
+        input = self.query_one("#test", Input)
+        text = input.value
+        self.mount(Static(text))
+        input.clear()
 
-        await self.view.dock(self.service_input, self.submit_button)
-
-    async def on_button_pressed(self, message):
-        """Handles form submission."""
-        if message.button.id == "submit":
-            service = self.service_input.value.strip()
-            if service:
-                result = get_password(service, self.key)
-                if result:
-                    username, password = result
-                    print(f"Service: {service}\nUsername: {username}\nPassword: {password}")
-                    await self.push_screen(PasswordManagerApp)
-                else:
-                    print(f"No password found for {service}")
-            else:
-                print("Service name is required!")
-class GetPasswordScreen(App):
-    def __init__(self, key):
-        super().__init__()
-        self.key = key
 
 if __name__ == "__main__":
-    app = PasswordManagerApp()
-    app.run()
+    passwords = load_passwords()
+    app = PasswordPrompt()
+
+    if 'login_pw' in passwords.keys():        
+        app.run()
+    else:
+        print("Please set a password. This will be needed to access the app")
+        pw1 = input("Enter a password: \n")
+        pw2 = input("Enter password again: \n")
+        if pw1 == pw2:
+            key = load_key()
+            add_password(key, 'login_pw', 'default_user', pw1)
+
+            app.run()
+        else:
+            print("Passwords do not match. Please try again.")
