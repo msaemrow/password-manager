@@ -8,24 +8,31 @@ from encryption import load_key
 
 class PasswordPrompt(App):
     """Prompt for password before accessing the main app."""
-    
+    BINDINGS = [("q", "pop_screen", "Close")]
     CSS_PATH = "textual.tcss"  
 
     def compose(self) -> ComposeResult:
         with Container(id="password_prompt_container"):
-            yield Label("Enter Password", id="password_prompt_label")
-            yield Input(placeholder="Enter your password", id="password_input", classes="password_prompt_input")
+            yield Vertical(
+                Label("Enter Password", id="password_prompt_label"),
+                Input(placeholder="Enter your password", id="user_password_input", classes="password_prompt_input"),
+            )
+           
             yield Horizontal(
                 Button("Submit", id="submit_password", classes="password_prompt_buttons"),
+                Button("Exit App", id="exit_app", classes="password_prompt_buttons"),
             )
+            yield Footer()
+
+    @on(Button.Pressed, "#exit_app")
+    def action_pop_screen(self):
+        return self.app.exit()
     
     @on(Button.Pressed, "#submit_password")
     def verify_password(self):
         key = load_key()
-        input_password = self.query_one("#password_input", Input).value.strip()
+        input_password = self.query_one("#user_password_input", Input).value.strip()
         password = get_login_pw(key)
-        print(f"Password {password}")
-        dummy_pw = "password"
 
         if input_password == password:
             self.push_screen(PasswordManagerHome())
@@ -36,8 +43,6 @@ class PasswordPrompt(App):
 class AddPassword(Screen):
     CSS_PATH = "textual.tcss"    
     
-
-    BINDINGS = [("esc", "pop_screen", "Close")]
     def compose(self) -> ComposeResult:
         with Container(id="add_password_container"):
 
@@ -66,13 +71,11 @@ class AddPassword(Screen):
         password = password_input.value.strip()
 
         if not account or not username or not password:
-            print(f"Account: '{account}' Username: '{username}' Password: '{password}'")
             self.success_message_container.update(f"All fields are required.")
             return
         
         try:
             key = load_key()
-            print(f"Key: {key}")
             add_password(key, account, username, password)
             self.success_message_container.update(f"Successfully added password for {account}.")
             
@@ -118,7 +121,6 @@ class GetPassword(Screen):
                 key = load_key()
                 try:
                     account_info = get_password(account, key)
-                    print(f"account info: {account_info}")
                 except Exception as e:
                     self.account_name_label.update("Error fetching account info")
                     print(f"Error fetching account info {e}")
@@ -131,7 +133,8 @@ class GetPassword(Screen):
                     return
                 
                 try:
-                    self.account_name_label.update(f"Account Name: {account_info['account']}")
+                    account_name = account_info['account']
+                    self.account_name_label.update(f"Account Name: {account_name.title()}")
                     self.account_user_label.update(f"Username: {account_info['username']}")
                     self.account_pw_label.update(f"Password: {account_info['password']}")
                 except Exception as e:
@@ -176,7 +179,7 @@ class ViewAccounts(Screen):
 class PasswordManagerHome(Screen):
     CSS_PATH = "textual.tcss"    
 
-    BINDINGS = [("a", "add_pw", "Add"), ("l", "lookup_pw", "Lookup")]
+    BINDINGS = [("a", "add_pw", "Add"), ("l", "lookup_pw", "Lookup"), ("v", "view_accounts", "View Accounts"), ("q", "exit_app", "Exit")]
     def compose(self) -> ComposeResult:
         with Container(id="home_container"):
             yield Label("Welcome to the Password Manager", id="home_title")

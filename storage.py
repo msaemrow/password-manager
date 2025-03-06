@@ -11,13 +11,11 @@ def load_passwords():
         return {}
     
     with open(STORAGE_FILE, "r") as file:
-        print("Loading passwords from file...")
         return json.load(file)
     
 def save_password(passwords):
     """Saves service, username, and password to JSON file"""
     with open(STORAGE_FILE, "w") as file:
-        print("saving password...")
         json.dump(passwords, file, indent=4)
 
 def add_password(key, account, username, password):
