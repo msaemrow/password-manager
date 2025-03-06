@@ -9,15 +9,14 @@ def generate_key():
         key=Fernet.generate_key()
         with open("secret.key", "wb") as key_file:
             key_file.write(key)
-        print("Key generated and saved.")
+        print("Key generated")
     else:
-        print("Key already exists")
+        print("Key loaded")
 
 def load_key():
     """
     Loads key from secret.key file
     """
-    print("Loading key...")
     return open("secret.key", "rb").read()
 
 def encrypt_password(password, key):

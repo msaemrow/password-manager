@@ -41,7 +41,7 @@ Vertical {
     margin-bottom: 1;
 }
 
-#password_input{
+#user_password_input{
     align: center middle;
     background: green;
     width: 100%;
