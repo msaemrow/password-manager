@@ -20,13 +20,35 @@ Label {
 Horizontal {
     width: 100%;
     align: center middle;
-    content-align: center middle;
 }
 
 Vertical {
     width: 100%;
     align: center middle;
     content-align: center middle; 
+}
+
+#password_prompt_container{
+    align: center middle;
+    background: gray;
+    width: 50%;
+    max-height: 75%;
+}
+
+#password_prompt_label{
+    width: 100%;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+#password_input{
+    align: center middle;
+    background: green;
+    width: 100%;
+}
+
+.password_prompt_buttons{
+    margin: 1;
 }
 
 #password_title{

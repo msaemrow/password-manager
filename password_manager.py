@@ -8,16 +8,25 @@ from encryption import load_key
 
 class PasswordPrompt(App):
     """Prompt for password before accessing the main app."""
-    
+    BINDINGS = [("esc", "pop_screen", "Close")]
     CSS_PATH = "textual.tcss"  
 
     def compose(self) -> ComposeResult:
         with Container(id="password_prompt_container"):
-            yield Label("Enter Password", id="password_prompt_label")
-            yield Input(placeholder="Enter your password", id="password_input", classes="password_prompt_input")
+            yield Vertical(
+                Label("Enter Password", id="password_prompt_label"),
+                Input(placeholder="Enter your password", id="password_input", classes="password_prompt_input"),
+            )
+           
             yield Horizontal(
                 Button("Submit", id="submit_password", classes="password_prompt_buttons"),
+                Button("Exit App", id="exit_app", classes="password_prompt_buttons"),
             )
+            yield Footer()
+
+    @on(Button.Pressed, "#exit_app")
+    def action_pop_screen(self):
+        return self.app.exit()
     
     @on(Button.Pressed, "#submit_password")
     def verify_password(self):
@@ -25,7 +34,6 @@ class PasswordPrompt(App):
         input_password = self.query_one("#password_input", Input).value.strip()
         password = get_login_pw(key)
         print(f"Password {password}")
-        dummy_pw = "password"
 
         if input_password == password:
             self.push_screen(PasswordManagerHome())
