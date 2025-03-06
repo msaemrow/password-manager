@@ -1,0 +1,158 @@
+Screen {
+    align: center middle;
+}
+
+App {
+    align: center middle;
+}
+
+Input {
+    width: 40%;
+    align: center middle;
+}
+
+Label {
+    color: white;
+    text-style: bold;
+    align: center middle;
+}
+
+Horizontal {
+    width: 100%;
+    align: center middle;
+    content-align: center middle;
+}
+
+Vertical {
+    width: 100%;
+    align: center middle;
+    content-align: center middle; 
+}
+
+#password_title{
+    text-align: center;
+    text-style: italic;
+    color: yellow;
+}
+
+#get_container {
+    width: 60%;
+    height: auto;
+    max-height: 80%;
+    align: center middle;
+    background: gray;
+    border: wide white;
+}
+
+
+
+#get_pw_input_container{
+    height: 50%;
+    align: center middle;
+    width: 100%;
+}
+
+#get_password_label{
+    width: 100%;
+    text-align: center;
+    padding-bottom: 1;
+}
+
+.get_password_inputs{
+    width: 100%;
+}
+
+.get_password_buttons {
+    width: 40%;
+    background: black;
+    text-align: center;
+    color: white;
+    border: wide white;
+    padding: 1;
+    margin: 1;
+}
+
+
+#add_password_container {
+    width: 60%;
+    height: auto;
+    max-height: 100%;
+    align: center middle;
+    padding: 1;
+    background: gray;
+    border: wide white;
+}
+
+#input_button_container{
+    height: 72%;
+    align: center middle;
+    width: 100%;
+}
+
+#success_message{
+    width: 100%;
+    color: white;
+    text-align: center;
+    }
+
+.add_password_label{
+    width: 100%; 
+    text-align: center;
+    padding-top: 1;
+}
+
+#add_password_title{
+    text-align: center;
+    width: 100%;
+}
+
+.add_password_buttons{
+    width: 40%;
+    background: black;
+    text-align: center;
+    color: white;
+    border: wide white;
+    padding: 1;
+    align: center middle;
+    margin: 1;
+}
+
+.add_password_inputs{
+    width: 100%;
+    padding: 0;
+    align: center middle;
+}
+
+#home_container {
+    height: auto;
+    width: 100%;
+    align: center middle;
+    background: gray;
+    padding: 1;
+}
+
+#home_title{
+    text-align: center;
+    width: 100%;
+    padding-bottom: 1; 
+    padding-top: 1;
+}
+
+#button_container {
+    align: center middle;
+    background:gray;
+}
+
+#home_label{
+    width: 100%;
+    text-align: center;
+    background:gray;
+}
+
+.home_buttons{
+    width: 30%;
+    margin: 1;
+}
+
+
+
